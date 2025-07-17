@@ -4,460 +4,494 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>구글 폼 자동 생성기 (API 설정 포함)</title>
+    <title>구글 폼 자동 생성기</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://www.gstatic.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://apis.google.com https://accounts.google.com https://forms.googleapis.com https://www.googleapis.com; frame-src https://accounts.google.com https://docs.google.com; img-src 'self' data: https:;">
+    
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client"></script>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-4xl">
+<body class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div class="container mx-auto px-4 py-8">
         <!-- 헤더 -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">
-                <i class="fas fa-magic text-purple-600"></i>
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-clipboard-list text-blue-600 mr-3"></i>
                 구글 폼 자동 생성기
             </h1>
-            <p class="text-gray-600">질문을 입력하면 자동으로 구글 폼을 생성해드립니다</p>
+            <p class="text-lg text-gray-600">질문을 입력하면 자동으로 구글 폼을 생성해드립니다</p>
         </div>
 
-        <!-- API 설정 패널 -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-cog text-blue-600 mr-2"></i>
-                API 설정
-            </h2>
-            
-            <div class="grid md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Google Client ID
-                    </label>
-                    <input type="text" id="clientId" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           placeholder="Google OAuth Client ID를 입력하세요">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Google API Key
-                    </label>
-                    <input type="password" id="apiKey" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           placeholder="Google API Key를 입력하세요">
-                </div>
-            </div>
-            
-            <div class="mt-4 flex gap-2">
-                <button onclick="saveApiSettings()" 
-                        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200">
-                    <i class="fas fa-save mr-2"></i>설정 저장
-                </button>
-                <button onclick="loadApiSettings()" 
-                        class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition duration-200">
-                    <i class="fas fa-download mr-2"></i>설정 불러오기
-                </button>
-                <button onclick="testConnection()" 
-                        class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200">
-                    <i class="fas fa-plug mr-2"></i>연결 테스트
-                </button>
-            </div>
-            
-            <div id="connectionStatus" class="mt-3 text-sm"></div>
-        </div>
-
-        <!-- 로그인 섹션 -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-user text-green-600 mr-2"></i>
-                Google 계정 로그인
-            </h2>
-            
-            <div id="loginSection">
-                <button onclick="signIn()" 
-                        class="bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 transition duration-200 text-lg">
-                    <i class="fab fa-google mr-2"></i>Google로 로그인
-                </button>
-            </div>
-            
-            <div id="userInfo" class="hidden">
-                <div class="flex items-center gap-4">
-                    <img id="userPhoto" class="w-12 h-12 rounded-full" alt="User Photo">
-                    <div>
-                        <p class="font-semibold" id="userName"></p>
-                        <p class="text-gray-600" id="userEmail"></p>
-                    </div>
-                    <button onclick="signOut()" 
-                            class="ml-auto bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">
-                        로그아웃
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 질문 입력 섹션 -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-question-circle text-purple-600 mr-2"></i>
-                폼 생성
-            </h2>
-            
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    폼 제목
-                </label>
-                <input type="text" id="formTitle" 
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                       placeholder="설문조사 제목을 입력하세요"
-                       value="새로운 설문조사">
-            </div>
-            
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    폼 설명
-                </label>
-                <textarea id="formDescription" 
-                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 h-20"
-                          placeholder="설문조사에 대한 설명을 입력하세요"></textarea>
-            </div>
-            
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    질문 목록 (한 줄에 하나씩)
-                </label>
-                <textarea id="questions" 
-                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 h-40"
-                          placeholder="예시:&#10;이름을 입력해주세요&#10;나이를 선택해주세요&#10;만족도를 평가해주세요&#10;추가 의견이 있다면 작성해주세요"></textarea>
-            </div>
-            
-            <button onclick="generateForm()" 
-                    class="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-md hover:from-purple-700 hover:to-blue-700 transition duration-200 text-lg font-semibold">
-                <i class="fas fa-magic mr-2"></i>구글 폼 생성하기
+        <!-- API 설정 버튼 -->
+        <div class="fixed top-4 right-4 z-50">
+            <button id="settingsBtn" class="bg-gray-600 hover:bg-gray-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-105">
+                <i class="fas fa-cog"></i>
             </button>
         </div>
 
-        <!-- 로딩 및 결과 섹션 -->
-        <div id="loadingSection" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6">
-            <div class="text-center">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                <p class="text-gray-600">구글 폼을 생성하고 있습니다...</p>
+        <!-- API 설정 모달 -->
+        <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-800">API 설정</h3>
+                    <button id="closeSettings" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Google Client ID</label>
+                        <input type="text" id="clientIdInput" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Google OAuth Client ID를 입력하세요">
+                    </div>
+                    
+                    <button id="saveSettings" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200">
+                        <i class="fas fa-save mr-2"></i>설정 저장
+                    </button>
+                </div>
+                
+                <div id="settingsStatus" class="mt-4 p-3 rounded-lg hidden">
+                    <p id="settingsMessage" class="text-sm"></p>
+                </div>
             </div>
         </div>
 
-        <div id="resultSection" class="hidden bg-white rounded-lg shadow-lg p-6">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-check-circle text-green-600 mr-2"></i>
-                생성 완료!
-            </h2>
-            
-            <div class="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
-                <p class="text-green-800 mb-2">구글 폼이 성공적으로 생성되었습니다!</p>
-                <div class="flex gap-2">
-                    <a id="formLink" href="#" target="_blank" 
-                       class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200">
-                        <i class="fas fa-external-link-alt mr-2"></i>폼 열기
-                    </a>
-                    <button onclick="copyLink()" 
-                            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200">
-                        <i class="fas fa-copy mr-2"></i>링크 복사
+        <!-- 메인 콘텐츠 -->
+        <div class="max-w-4xl mx-auto">
+            <!-- 상태 표시 -->
+            <div class="mb-8 p-4 bg-white rounded-xl shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div id="apiStatus" class="flex items-center">
+                            <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                            <span class="text-sm text-gray-600">API 연결 대기중</span>
+                        </div>
+                        <div id="authStatus" class="flex items-center">
+                            <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                            <span class="text-sm text-gray-600">로그인 필요</span>
+                        </div>
+                    </div>
+                    <button id="loginBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fab fa-google mr-2"></i>Google 로그인
                     </button>
                 </div>
             </div>
-            
-            <div id="formPreview"></div>
-        </div>
 
-        <!-- 오류 메시지 -->
-        <div id="errorSection" class="hidden bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-            <p class="text-red-800" id="errorMessage"></p>
+            <!-- 폼 생성 섹션 -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                    <i class="fas fa-plus-circle text-green-600 mr-2"></i>
+                    새 폼 생성
+                </h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">폼 제목</label>
+                        <input type="text" id="formTitle" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="예: 고객 만족도 조사"
+                               value="새로운 설문조사">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">질문 내용</label>
+                        <textarea id="questionInput" rows="4"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                  placeholder="예: 우리 서비스에 대해 얼마나 만족하시나요?"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">질문 유형</label>
+                        <select id="questionType" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="MULTIPLE_CHOICE">객관식 (Multiple Choice)</option>
+                            <option value="TEXT">단답형 (Short Answer)</option>
+                            <option value="PARAGRAPH_TEXT">장문형 (Paragraph)</option>
+                            <option value="SCALE">척도 (Scale)</option>
+                        </select>
+                    </div>
+                    
+                    <div id="choicesDiv" class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">선택지 (객관식인 경우)</label>
+                        <input type="text" class="choice-input w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="선택지 1" value="매우 만족">
+                        <input type="text" class="choice-input w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="선택지 2" value="만족">
+                        <input type="text" class="choice-input w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="선택지 3" value="보통">
+                        <input type="text" class="choice-input w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="선택지 4" value="불만족">
+                        <button type="button" id="addChoice" class="text-blue-600 hover:text-blue-800 text-sm">+ 선택지 추가</button>
+                    </div>
+                    
+                    <button id="createFormBtn" 
+                            class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                        <i class="fas fa-magic mr-2"></i>구글 폼 생성하기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 결과 섹션 -->
+            <div id="resultSection" class="bg-white rounded-xl shadow-lg p-8 hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                    <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                    생성 완료!
+                </h2>
+                
+                <div id="formResult" class="space-y-4">
+                    <!-- 결과가 여기에 표시됩니다 -->
+                </div>
+            </div>
+
+            <!-- 로딩 상태 -->
+            <div id="loadingSection" class="text-center py-12 hidden">
+                <div class="inline-flex items-center px-6 py-3 bg-blue-100 rounded-full">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
+                    <span class="text-blue-800 font-medium">폼을 생성하고 있습니다...</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
+        // 전역 변수
         let isSignedIn = false;
-        let currentUser = null;
+        let gapi = window.gapi;
+        let google = window.google;
+        
+        // DOM 요소
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettings = document.getElementById('closeSettings');
+        const clientIdInput = document.getElementById('clientIdInput');
+        const saveSettings = document.getElementById('saveSettings');
+        const settingsStatus = document.getElementById('settingsStatus');
+        const settingsMessage = document.getElementById('settingsMessage');
+        const apiStatus = document.getElementById('apiStatus');
+        const authStatus = document.getElementById('authStatus');
+        const loginBtn = document.getElementById('loginBtn');
+        const createFormBtn = document.getElementById('createFormBtn');
+        const resultSection = document.getElementById('resultSection');
+        const loadingSection = document.getElementById('loadingSection');
+        const questionType = document.getElementById('questionType');
+        const choicesDiv = document.getElementById('choicesDiv');
+        const addChoice = document.getElementById('addChoice');
 
-        // API 설정 저장
-        function saveApiSettings() {
-            const clientId = document.getElementById('clientId').value;
-            const apiKey = document.getElementById('apiKey').value;
-            
-            if (!clientId || !apiKey) {
-                showError('Client ID와 API Key를 모두 입력해주세요.');
-                return;
-            }
-            
-            localStorage.setItem('google_client_id', clientId);
-            localStorage.setItem('google_api_key', apiKey);
-            showSuccess('API 설정이 저장되었습니다.');
-        }
-
-        // API 설정 불러오기
-        function loadApiSettings() {
-            const clientId = localStorage.getItem('google_client_id');
-            const apiKey = localStorage.getItem('google_api_key');
-            
-            if (clientId) document.getElementById('clientId').value = clientId;
-            if (apiKey) document.getElementById('apiKey').value = apiKey;
-            
-            if (clientId && apiKey) {
-                showSuccess('저장된 API 설정을 불러왔습니다.');
-            } else {
-                showError('저장된 API 설정이 없습니다.');
+        // 로컬 스토리지에서 설정 로드
+        function loadSettings() {
+            const clientId = localStorage.getItem('googleClientId');
+            if (clientId) {
+                clientIdInput.value = clientId;
+                initializeGoogleAPI(clientId);
             }
         }
 
-        // 연결 테스트
-        async function testConnection() {
-            const clientId = document.getElementById('clientId').value;
-            const apiKey = document.getElementById('apiKey').value;
-            
-            if (!clientId || !apiKey) {
-                showError('Client ID와 API Key를 먼저 입력해주세요.');
-                return;
-            }
-            
-            try {
-                await gapi.load('auth2', function() {
-                    gapi.auth2.init({
-                        client_id: clientId
-                    });
-                });
-                
-                showSuccess('API 연결이 정상적으로 작동합니다!');
-            } catch (error) {
-                showError('API 연결에 실패했습니다: ' + error.message);
-            }
-        }
-
-        // Google 로그인
-        async function signIn() {
-            const clientId = document.getElementById('clientId').value;
-            
+        // 설정 저장
+        function saveSettingsToStorage() {
+            const clientId = clientIdInput.value.trim();
             if (!clientId) {
-                showError('먼저 Client ID를 입력하고 저장해주세요.');
+                showSettingsMessage('Client ID를 입력해주세요.', 'error');
                 return;
             }
             
-            try {
-                await gapi.load('auth2', function() {
-                    gapi.auth2.init({
-                        client_id: clientId
-                    }).then(function() {
-                        const authInstance = gapi.auth2.getAuthInstance();
-                        return authInstance.signIn({
-                            scope: 'https://www.googleapis.com/auth/forms.body https://www.googleapis.com/auth/forms'
-                        });
-                    }).then(function(user) {
-                        handleSignIn(user);
-                    });
-                });
-            } catch (error) {
-                showError('로그인에 실패했습니다: ' + error.message);
-            }
+            localStorage.setItem('googleClientId', clientId);
+            showSettingsMessage('설정이 저장되었습니다!', 'success');
+            
+            // API 초기화
+            setTimeout(() => {
+                initializeGoogleAPI(clientId);
+                settingsModal.classList.add('hidden');
+            }, 1000);
         }
 
-        // 로그인 처리
-        function handleSignIn(user) {
-            isSignedIn = true;
-            currentUser = user;
-            
-            const profile = user.getBasicProfile();
-            document.getElementById('userName').textContent = profile.getName();
-            document.getElementById('userEmail').textContent = profile.getEmail();
-            document.getElementById('userPhoto').src = profile.getImageUrl();
-            
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('userInfo').classList.remove('hidden');
-            
-            showSuccess('로그인되었습니다!');
-        }
-
-        // 로그아웃
-        function signOut() {
-            if (gapi.auth2) {
-                const authInstance = gapi.auth2.getAuthInstance();
-                authInstance.signOut().then(function() {
-                    isSignedIn = false;
-                    currentUser = null;
-                    
-                    document.getElementById('loginSection').classList.remove('hidden');
-                    document.getElementById('userInfo').classList.add('hidden');
-                    
-                    showSuccess('로그아웃되었습니다.');
-                });
-            }
-        }
-
-        // 구글 폼 생성
-        async function generateForm() {
-            if (!isSignedIn) {
-                showError('먼저 Google 계정으로 로그인해주세요.');
-                return;
-            }
-            
-            const title = document.getElementById('formTitle').value || '새로운 설문조사';
-            const description = document.getElementById('formDescription').value;
-            const questionsText = document.getElementById('questions').value;
-            
-            if (!questionsText.trim()) {
-                showError('질문을 입력해주세요.');
-                return;
-            }
-            
-            const questions = questionsText.split('\n').filter(q => q.trim());
-            
-            if (questions.length === 0) {
-                showError('최소 하나의 질문을 입력해주세요.');
-                return;
-            }
-            
-            showLoading();
-            
-            try {
-                await createGoogleForm(title, description, questions);
-            } catch (error) {
-                hideLoading();
-                showError('폼 생성에 실패했습니다: ' + error.message);
-            }
-        }
-
-        // Google Forms API를 사용한 폼 생성
-        async function createGoogleForm(title, description, questions) {
-            const apiKey = document.getElementById('apiKey').value;
-            
-            if (!apiKey) {
-                throw new Error('API Key가 설정되지 않았습니다.');
-            }
-            
-            // 실제 Google Forms API 호출 시뮬레이션
-            // 실제 환경에서는 아래와 같이 API를 호출합니다
+        // 설정 메시지 표시
+        function showSettingsMessage(message, type) {
+            settingsMessage.textContent = message;
+            settingsStatus.className = `mt-4 p-3 rounded-lg ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            settingsStatus.classList.remove('hidden');
             
             setTimeout(() => {
-                const mockFormId = 'mock_form_' + Date.now();
-                const mockFormUrl = `https://docs.google.com/forms/d/${mockFormId}/viewform`;
-                
-                hideLoading();
-                showResult(mockFormUrl, title, questions);
-            }, 2000);
+                settingsStatus.classList.add('hidden');
+            }, 3000);
+        }
+
+        // 상태 업데이트
+        function updateStatus(elementId, connected, text) {
+            const element = document.getElementById(elementId);
+            const dot = element.querySelector('div');
+            const span = element.querySelector('span');
             
-            /*
-            // 실제 API 호출 코드 (참고용)
-            const response = await gapi.client.request({
-                path: 'https://forms.googleapis.com/v1/forms',
-                method: 'POST',
-                body: {
-                    info: {
-                        title: title,
-                        description: description
-                    }
-                }
-            });
-            
-            const formId = response.result.formId;
-            
-            // 질문 추가
-            for (let i = 0; i < questions.length; i++) {
-                await gapi.client.request({
-                    path: `https://forms.googleapis.com/v1/forms/${formId}:batchUpdate`,
-                    method: 'POST',
-                    body: {
-                        requests: [{
-                            createItem: {
-                                item: {
-                                    title: questions[i],
-                                    questionItem: {
-                                        question: {
-                                            textQuestion: {}
-                                        }
-                                    }
-                                },
-                                location: {
-                                    index: i
-                                }
-                            }
-                        }]
+            dot.className = `w-3 h-3 rounded-full mr-2 ${connected ? 'bg-green-500' : 'bg-red-500'}`;
+            span.textContent = text;
+        }
+
+        // Google API 초기화
+        async function initializeGoogleAPI(clientId) {
+            try {
+                // GAPI 로드 대기
+                await new Promise((resolve) => {
+                    if (typeof gapi !== 'undefined' && gapi.load) {
+                        gapi.load('auth2', resolve);
+                    } else {
+                        setTimeout(() => {
+                            gapi.load('auth2', resolve);
+                        }, 1000);
                     }
                 });
+
+                // Auth2 초기화
+                const authInstance = await gapi.auth2.init({
+                    client_id: clientId,
+                    scope: 'https://www.googleapis.com/auth/forms.body https://www.googleapis.com/auth/forms'
+                });
+
+                updateStatus('apiStatus', true, 'API 연결 완료');
+                
+                // 로그인 상태 확인
+                checkSignInStatus(authInstance);
+                
+                // 로그인 버튼 이벤트
+                loginBtn.onclick = () => handleSignIn(authInstance);
+                
+            } catch (error) {
+                console.error('Google API 초기화 실패:', error);
+                updateStatus('apiStatus', false, 'API 연결 실패');
             }
+        }
+
+        // 로그인 상태 확인
+        function checkSignInStatus(authInstance) {
+            isSignedIn = authInstance.isSignedIn.get();
+            updateAuthStatus();
             
-            const formUrl = `https://docs.google.com/forms/d/${formId}/viewform`;
-            hideLoading();
-            showResult(formUrl, title, questions);
-            */
+            authInstance.isSignedIn.listen(updateAuthStatus);
+        }
+
+        // 인증 상태 업데이트
+        function updateAuthStatus() {
+            if (isSignedIn) {
+                updateStatus('authStatus', true, '로그인 완료');
+                loginBtn.textContent = '로그아웃';
+                loginBtn.className = 'bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-200';
+                createFormBtn.disabled = false;
+            } else {
+                updateStatus('authStatus', false, '로그인 필요');
+                loginBtn.innerHTML = '<i class="fab fa-google mr-2"></i>Google 로그인';
+                loginBtn.className = 'bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-200';
+                createFormBtn.disabled = true;
+            }
+        }
+
+        // 로그인/로그아웃 핸들러
+        async function handleSignIn(authInstance) {
+            try {
+                if (isSignedIn) {
+                    await authInstance.signOut();
+                    isSignedIn = false;
+                } else {
+                    await authInstance.signIn();
+                    isSignedIn = true;
+                }
+                updateAuthStatus();
+            } catch (error) {
+                console.error('로그인 처리 실패:', error);
+                alert('로그인 처리 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // 질문 유형 변경 시 선택지 표시/숨김
+        questionType.addEventListener('change', function() {
+            if (this.value === 'MULTIPLE_CHOICE') {
+                choicesDiv.classList.remove('hidden');
+            } else {
+                choicesDiv.classList.add('hidden');
+            }
+        });
+
+        // 선택지 추가
+        addChoice.addEventListener('click', function() {
+            const newInput = document.createElement('input');
+            newInput.type = 'text';
+            newInput.className = 'choice-input w-full px-4 py-2 border border-gray-300 rounded-lg';
+            newInput.placeholder = `선택지 ${document.querySelectorAll('.choice-input').length + 1}`;
+            choicesDiv.insertBefore(newInput, addChoice);
+        });
+
+        // 폼 생성
+        async function createGoogleForm() {
+            const formTitle = document.getElementById('formTitle').value.trim();
+            const questionText = document.getElementById('questionInput').value.trim();
+            const questionTypeValue = questionType.value;
+            
+            if (!formTitle || !questionText) {
+                alert('폼 제목과 질문을 모두 입력해주세요.');
+                return;
+            }
+
+            loadingSection.classList.remove('hidden');
+            resultSection.classList.add('hidden');
+
+            try {
+                // Forms API 로드
+                await new Promise((resolve) => {
+                    gapi.load('client', resolve);
+                });
+                
+                await gapi.client.init({
+                    discoveryDocs: ['https://forms.googleapis.com/$discovery/rest?version=v1'],
+                });
+
+                // 폼 생성 요청
+                const formRequest = {
+                    info: {
+                        title: formTitle,
+                    }
+                };
+
+                const formResponse = await gapi.client.forms.forms.create(formRequest);
+                const formId = formResponse.result.formId;
+
+                // 질문 추가
+                let question = {
+                    title: questionText,
+                    required: true
+                };
+
+                if (questionTypeValue === 'MULTIPLE_CHOICE') {
+                    const choices = Array.from(document.querySelectorAll('.choice-input'))
+                        .map(input => input.value.trim())
+                        .filter(value => value !== '');
+                    
+                    question.choiceQuestion = {
+                        type: 'RADIO',
+                        options: choices.map(choice => ({ value: choice }))
+                    };
+                } else if (questionTypeValue === 'TEXT') {
+                    question.textQuestion = {};
+                } else if (questionTypeValue === 'PARAGRAPH_TEXT') {
+                    question.textQuestion = {
+                        paragraph: true
+                    };
+                } else if (questionTypeValue === 'SCALE') {
+                    question.scaleQuestion = {
+                        low: 1,
+                        high: 5,
+                        lowLabel: '매우 불만족',
+                        highLabel: '매우 만족'
+                    };
+                }
+
+                const updateRequest = {
+                    requests: [{
+                        createItem: {
+                            item: {
+                                title: questionText,
+                                questionItem: {
+                                    question: question
+                                }
+                            },
+                            location: {
+                                index: 0
+                            }
+                        }
+                    }]
+                };
+
+                await gapi.client.forms.forms.batchUpdate({
+                    formId: formId,
+                    resource: updateRequest
+                });
+
+                // 결과 표시
+                showResult(formId, formTitle);
+
+            } catch (error) {
+                console.error('폼 생성 실패:', error);
+                alert('폼 생성 중 오류가 발생했습니다: ' + (error.result?.error?.message || error.message));
+            } finally {
+                loadingSection.classList.add('hidden');
+            }
         }
 
         // 결과 표시
-        function showResult(formUrl, title, questions) {
-            document.getElementById('formLink').href = formUrl;
-            document.getElementById('formLink').setAttribute('data-url', formUrl);
-            
-            const preview = document.getElementById('formPreview');
-            preview.innerHTML = `
-                <h3 class="text-lg font-semibold mb-3">폼 미리보기:</h3>
-                <div class="border rounded-md p-4 bg-gray-50">
-                    <h4 class="font-bold text-lg mb-2">${title}</h4>
-                    <div class="space-y-2">
-                        ${questions.map((q, i) => `
-                            <div class="text-sm">
-                                <span class="font-medium">${i + 1}. ${q}</span>
+        function showResult(formId, formTitle) {
+            const formUrl = `https://docs.google.com/forms/d/${formId}/edit`;
+            const responseUrl = `https://docs.google.com/forms/d/${formId}/viewform`;
+
+            document.getElementById('formResult').innerHTML = `
+                <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-green-800 mb-4">${formTitle}</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-2">편집 링크 (폼 수정용):</p>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" value="${formUrl}" class="flex-1 px-3 py-2 bg-gray-50 border rounded text-sm" readonly>
+                                <button onclick="copyToClipboard('${formUrl}')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
+                                    <i class="fas fa-copy mr-1"></i>복사
+                                </button>
                             </div>
-                        `).join('')}
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 mb-2">응답 링크 (설문 참여용):</p>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" value="${responseUrl}" class="flex-1 px-3 py-2 bg-gray-50 border rounded text-sm" readonly>
+                                <button onclick="copyToClipboard('${responseUrl}')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm">
+                                    <i class="fas fa-copy mr-1"></i>복사
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2 pt-4">
+                            <a href="${formUrl}" target="_blank" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
+                                <i class="fas fa-edit mr-1"></i>폼 편집하기
+                            </a>
+                            <a href="${responseUrl}" target="_blank" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm">
+                                <i class="fas fa-eye mr-1"></i>폼 미리보기
+                            </a>
+                        </div>
                     </div>
                 </div>
             `;
-            
-            document.getElementById('resultSection').classList.remove('hidden');
+
+            resultSection.classList.remove('hidden');
         }
 
-        // 링크 복사
-        function copyLink() {
-            const link = document.getElementById('formLink').getAttribute('data-url');
-            navigator.clipboard.writeText(link).then(() => {
-                showSuccess('링크가 클립보드에 복사되었습니다!');
+        // 클립보드 복사
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // 임시 메시지 표시
+                const message = document.createElement('div');
+                message.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-lg z-50';
+                message.textContent = '클립보드에 복사되었습니다!';
+                document.body.appendChild(message);
+                
+                setTimeout(() => {
+                    document.body.removeChild(message);
+                }, 2000);
             });
         }
 
-        // 로딩 표시
-        function showLoading() {
-            document.getElementById('loadingSection').classList.remove('hidden');
-            document.getElementById('resultSection').classList.add('hidden');
-            document.getElementById('errorSection').classList.add('hidden');
-        }
+        // 이벤트 리스너
+        settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+        closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+        saveSettings.addEventListener('click', saveSettingsToStorage);
+        createFormBtn.addEventListener('click', createGoogleForm);
 
-        // 로딩 숨김
-        function hideLoading() {
-            document.getElementById('loadingSection').classList.add('hidden');
-        }
+        // 모달 외부 클릭 시 닫기
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.classList.add('hidden');
+            }
+        });
 
-        // 성공 메시지
-        function showSuccess(message) {
-            const statusDiv = document.getElementById('connectionStatus');
-            statusDiv.innerHTML = `<div class="text-green-600"><i class="fas fa-check-circle mr-2"></i>${message}</div>`;
-            setTimeout(() => statusDiv.innerHTML = '', 3000);
-        }
-
-        // 오류 메시지
-        function showError(message) {
-            document.getElementById('errorMessage').textContent = message;
-            document.getElementById('errorSection').classList.remove('hidden');
-            setTimeout(() => {
-                document.getElementById('errorSection').classList.add('hidden');
-            }, 5000);
-        }
-
-        // 페이지 로드 시 저장된 설정 불러오기
-        window.onload = function() {
-            loadApiSettings();
-        };
+        // 페이지 로드 시 설정 로드
+        window.addEventListener('load', loadSettings);
     </script>
 </body>
 </html>
     <script id="html_badge_script1">
         window.__genspark_remove_badge_link = "https://www.genspark.ai/api/html_badge/" +
-            "remove_badge?token=To%2FBnjzloZ3UfQdcSaYfDnmeRi%2BgJSEdTi8v3HRVLVTDfAr%2FP0851aFzklWpCNH6ndWodqM9GK6exRVeAxlAvKXVQPKf3SuwYRN3McYAwjrKuhQVBbNT1lT%2FMIvh10lZ0bLSGtiuPMJ7PMTP%2BjJf8ioDBdZxa7YPJs0GhM9v62vut4sDFXChplIXTDqgo3lakhGRZwe25HBUTtNX6o1qfEE381%2FELlRWbqaQLs%2F%2Fx7WjYBXT%2F9Yf23W%2FqAZ13LGVN4diqzYGGY4L3ffbRN9CknEkIUOkr%2FG1DDLGG7OFeGiD0sP7n1lYTNeQHPeApx3IVdIeHYWd8CF2dWlVqGiz1OIhWfaA6CTZOP2Ep4k5JlFFo44ttBa76UrHzHjWvtYp%2Fu33MFcm8PDry%2FWxPzYPfFMVymx2FKRtCIPM51Heh6vYtp5CmvZNvfEpJyChjVxhsFmLOu%2Fjl3SE3mKCINtR%2BWVnMP61Ft8TT0rYQZSUwVbCJBRFn0WpVMdebpSTd684GGViMVGZB1aC4mGq2zQLs%2FR1IA9z4Ek%2FRrRv02Rsdfk%3D";
+            "remove_badge?token=To%2FBnjzloZ3UfQdcSaYfDlWi4pNKtdhfFJG6%2F%2B9PbgJcRBWY5%2BRvnxFU6G4W1xj%2Fo4%2FeXGs1SRHwRi6K0WcmK3qB7ooN2wWRIfR8XzH3t31w2gaNv8VNYhDPJ951bRsokeef7t%2BG7mIRmLyQouoIrf4XbKvz3OS3zLHM7Z0JzicxTwhTblksM55rxGnMYgjolW%2BIn%2Fhtnmi3fkEWzZYsKQBN7BD9MML%2FJ8HLGwCJq%2FAIdrQnVhjnRjWLxl0YTABgIRXuLE46s7OkGtsMR76spoIsL2WpEA0X4sVKUAC%2BX1zLlyfDt4FreXCyxhQOzMxJ6eq7AIEybAIf6e2z3h1bU2L%2BBTBnixQphSfRojr4J6CDiiFXoF9rhowpXFJubpSBmz8AqH%2BMIobtoIJsPM16QTnbmkdRpSeJK2Ic0Oh0SXW3QGX6X%2FUhI3wTIlj9cBEtRLx0NFRTmUUDZVZJZ1ph9%2Fhp9nDq15f%2BsIfeG9eg4idkqomMo64gLzd5WKKS9eJ2z1se6fH%2FRIrOpSSJ2r%2F9dniwbzLd%2Bnfoekt82GPVoi4%3D";
         window.__genspark_locale = "ko-KR";
-        window.__genspark_token = "To/BnjzloZ3UfQdcSaYfDnmeRi+gJSEdTi8v3HRVLVTDfAr/P0851aFzklWpCNH6ndWodqM9GK6exRVeAxlAvKXVQPKf3SuwYRN3McYAwjrKuhQVBbNT1lT/MIvh10lZ0bLSGtiuPMJ7PMTP+jJf8ioDBdZxa7YPJs0GhM9v62vut4sDFXChplIXTDqgo3lakhGRZwe25HBUTtNX6o1qfEE381/ELlRWbqaQLs//x7WjYBXT/9Yf23W/qAZ13LGVN4diqzYGGY4L3ffbRN9CknEkIUOkr/G1DDLGG7OFeGiD0sP7n1lYTNeQHPeApx3IVdIeHYWd8CF2dWlVqGiz1OIhWfaA6CTZOP2Ep4k5JlFFo44ttBa76UrHzHjWvtYp/u33MFcm8PDry/WxPzYPfFMVymx2FKRtCIPM51Heh6vYtp5CmvZNvfEpJyChjVxhsFmLOu/jl3SE3mKCINtR+WVnMP61Ft8TT0rYQZSUwVbCJBRFn0WpVMdebpSTd684GGViMVGZB1aC4mGq2zQLs/R1IA9z4Ek/RrRv02Rsdfk=";
+        window.__genspark_token = "To/BnjzloZ3UfQdcSaYfDlWi4pNKtdhfFJG6/+9PbgJcRBWY5+RvnxFU6G4W1xj/o4/eXGs1SRHwRi6K0WcmK3qB7ooN2wWRIfR8XzH3t31w2gaNv8VNYhDPJ951bRsokeef7t+G7mIRmLyQouoIrf4XbKvz3OS3zLHM7Z0JzicxTwhTblksM55rxGnMYgjolW+In/htnmi3fkEWzZYsKQBN7BD9MML/J8HLGwCJq/AIdrQnVhjnRjWLxl0YTABgIRXuLE46s7OkGtsMR76spoIsL2WpEA0X4sVKUAC+X1zLlyfDt4FreXCyxhQOzMxJ6eq7AIEybAIf6e2z3h1bU2L+BTBnixQphSfRojr4J6CDiiFXoF9rhowpXFJubpSBmz8AqH+MIobtoIJsPM16QTnbmkdRpSeJK2Ic0Oh0SXW3QGX6X/UhI3wTIlj9cBEtRLx0NFRTmUUDZVZJZ1ph9/hp9nDq15f+sIfeG9eg4idkqomMo64gLzd5WKKS9eJ2z1se6fH/RIrOpSSJ2r/9dniwbzLd+nfoekt82GPVoi4=";
     </script>
     
     <script id="html_notice_dialog_script" src="https://www.genspark.ai/notice_dialog.js"></script>

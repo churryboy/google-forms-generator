@@ -5,6 +5,497 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>구글 폼 자동 생성기</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800">
+                <i class="fas fa-poll-h text-blue-600 mr-2"></i>
+                구글 폼 자동 생성기
+            </h1>
+            <button id="settingsBtn" class="p-2 text-gray-600 hover:text-blue-600 transition-colors">
+                <i class="fas fa-cog text-xl"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Status Bar -->
+        <div id="statusBar" class="mb-6 p-4 rounded-lg bg-gray-100 hidden">
+            <div class="flex items-center">
+                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                <span id="statusText">준비 중...</span>
+            </div>
+        </div>
+
+        <!-- Settings Panel -->
+        <div id="settingsPanel" class="mb-6 p-6 bg-white rounded-lg shadow-md hidden">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                <i class="fas fa-key text-yellow-600 mr-2"></i>
+                API 설정
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="clientId" class="block text-sm font-medium text-gray-700 mb-2">
+                        Google Client ID *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="clientId" 
+                        placeholder="Google Cloud Console에서 발급받은 Client ID를 입력하세요"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                </div>
+                <div class="flex space-x-3">
+                    <button id="saveSettings" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-save mr-2"></i>설정 저장
+                    </button>
+                    <button id="closeSettings" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-times mr-2"></i>닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Section -->
+        <div id="loginSection" class="mb-6 p-6 bg-white rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                <i class="fas fa-sign-in-alt text-green-600 mr-2"></i>
+                Google 계정 인증
+            </h2>
+            <div class="text-center">
+                <div id="googleSignInBtn" class="inline-block"></div>
+                <p class="mt-3 text-sm text-gray-600">
+                    구글 폼을 생성하려면 Google 계정으로 로그인해주세요
+                </p>
+            </div>
+        </div>
+
+        <!-- User Info -->
+        <div id="userInfo" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg hidden">
+            <div class="flex items-center">
+                <img id="userAvatar" src="" alt="Profile" class="w-10 h-10 rounded-full mr-3">
+                <div>
+                    <p class="font-medium text-green-800">
+                        <span id="userName"></span>님, 안녕하세요!
+                    </p>
+                    <p class="text-sm text-green-600">Google Forms API에 접근할 수 있습니다.</p>
+                </div>
+                <button id="signOutBtn" class="ml-auto px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
+                    로그아웃
+                </button>
+            </div>
+        </div>
+
+        <!-- Form Generator -->
+        <div id="formGenerator" class="mb-6 p-6 bg-white rounded-lg shadow-md hidden">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                <i class="fas fa-magic text-purple-600 mr-2"></i>
+                폼 생성하기
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="formTitle" class="block text-sm font-medium text-gray-700 mb-2">
+                        폼 제목
+                    </label>
+                    <input 
+                        type="text" 
+                        id="formTitle" 
+                        placeholder="예: 고객 만족도 조사"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                </div>
+                <div>
+                    <label for="formDescription" class="block text-sm font-medium text-gray-700 mb-2">
+                        폼 설명 (선택사항)
+                    </label>
+                    <textarea 
+                        id="formDescription" 
+                        rows="2"
+                        placeholder="폼에 대한 간단한 설명을 입력하세요"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    ></textarea>
+                </div>
+                <div>
+                    <label for="questions" class="block text-sm font-medium text-gray-700 mb-2">
+                        질문 목록 (한 줄에 하나씩)
+                    </label>
+                    <textarea 
+                        id="questions" 
+                        rows="5"
+                        placeholder="좋아하는 음식은 무엇인가요?&#10;나이가 어떻게 되시나요?&#10;이메일 주소를 알려주세요"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    ></textarea>
+                </div>
+                <button id="createFormBtn" class="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-md hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105">
+                    <i class="fas fa-plus-circle mr-2"></i>
+                    구글 폼 생성하기
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p class="text-gray-700">구글 폼을 생성하고 있습니다...</p>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div id="result" class="hidden p-6 bg-white rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                생성 완료!
+            </h2>
+            <div id="resultContent" class="space-y-4">
+                <!-- Result will be populated here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-gray-300">
+                <i class="fas fa-code mr-2"></i>
+                Google Forms API를 활용한 자동 폼 생성기
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        class GoogleFormGenerator {
+            constructor() {
+                this.accessToken = null;
+                this.clientId = localStorage.getItem('googleClientId');
+                this.user = null;
+                
+                this.initializeUI();
+                this.loadSettings();
+                
+                if (this.clientId) {
+                    this.initializeGoogleSignIn();
+                }
+            }
+
+            initializeUI() {
+                // Settings panel
+                document.getElementById('settingsBtn').addEventListener('click', () => {
+                    document.getElementById('settingsPanel').classList.toggle('hidden');
+                });
+
+                document.getElementById('closeSettings').addEventListener('click', () => {
+                    document.getElementById('settingsPanel').classList.add('hidden');
+                });
+
+                document.getElementById('saveSettings').addEventListener('click', () => {
+                    this.saveSettings();
+                });
+
+                // Form generation
+                document.getElementById('createFormBtn').addEventListener('click', () => {
+                    this.createForm();
+                });
+
+                // Sign out
+                document.getElementById('signOutBtn').addEventListener('click', () => {
+                    this.signOut();
+                });
+            }
+
+            loadSettings() {
+                if (this.clientId) {
+                    document.getElementById('clientId').value = this.clientId;
+                    this.showStatus('API 설정이 저장되어 있습니다.', 'success');
+                } else {
+                    this.showStatus('Google Client ID를 설정해주세요.', 'warning');
+                    document.getElementById('settingsPanel').classList.remove('hidden');
+                }
+            }
+
+            saveSettings() {
+                const clientId = document.getElementById('clientId').value.trim();
+                
+                if (!clientId) {
+                    alert('Client ID를 입력해주세요.');
+                    return;
+                }
+
+                localStorage.setItem('googleClientId', clientId);
+                this.clientId = clientId;
+                
+                this.showStatus('설정이 저장되었습니다.', 'success');
+                document.getElementById('settingsPanel').classList.add('hidden');
+                
+                this.initializeGoogleSignIn();
+            }
+
+            initializeGoogleSignIn() {
+                if (!window.google) {
+                    this.showStatus('Google Identity Services를 로딩하는 중...', 'info');
+                    setTimeout(() => this.initializeGoogleSignIn(), 1000);
+                    return;
+                }
+
+                window.google.accounts.id.initialize({
+                    client_id: this.clientId,
+                    callback: (response) => {
+                        this.handleSignIn(response);
+                    }
+                });
+
+                window.google.accounts.id.renderButton(
+                    document.getElementById('googleSignInBtn'),
+                    {
+                        theme: 'outline',
+                        size: 'large',
+                        text: 'signin_with',
+                        locale: 'ko'
+                    }
+                );
+
+                // OAuth for API access
+                this.tokenClient = window.google.accounts.oauth2.initTokenClient({
+                    client_id: this.clientId,
+                    scope: 'https://www.googleapis.com/auth/forms.body https://www.googleapis.com/auth/drive.file',
+                    callback: (response) => {
+                        this.accessToken = response.access_token;
+                        this.showFormGenerator();
+                    }
+                });
+
+                this.showStatus('Google 로그인이 준비되었습니다.', 'success');
+            }
+
+            handleSignIn(response) {
+                try {
+                    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+                    this.user = {
+                        name: payload.name,
+                        email: payload.email,
+                        picture: payload.picture
+                    };
+
+                    this.showUserInfo();
+                    this.requestAPIAccess();
+                    
+                } catch (error) {
+                    console.error('Sign-in error:', error);
+                    this.showStatus('로그인 처리 중 오류가 발생했습니다.', 'error');
+                }
+            }
+
+            requestAPIAccess() {
+                this.showStatus('API 접근 권한을 요청하고 있습니다...', 'info');
+                this.tokenClient.requestAccessToken();
+            }
+
+            showUserInfo() {
+                document.getElementById('userName').textContent = this.user.name;
+                document.getElementById('userAvatar').src = this.user.picture;
+                document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('loginSection').classList.add('hidden');
+            }
+
+            showFormGenerator() {
+                document.getElementById('formGenerator').classList.remove('hidden');
+                this.showStatus('구글 폼을 생성할 준비가 완료되었습니다!', 'success');
+            }
+
+            async createForm() {
+                const title = document.getElementById('formTitle').value.trim();
+                const description = document.getElementById('formDescription').value.trim();
+                const questionsText = document.getElementById('questions').value.trim();
+
+                if (!title || !questionsText) {
+                    alert('폼 제목과 질문을 입력해주세요.');
+                    return;
+                }
+
+                const questions = questionsText.split('\n').filter(q => q.trim());
+                
+                if (questions.length === 0) {
+                    alert('최소 하나의 질문을 입력해주세요.');
+                    return;
+                }
+
+                this.showLoading(true);
+
+                try {
+                    // Create form
+                    const formData = {
+                        info: {
+                            title: title,
+                            description: description || ''
+                        }
+                    };
+
+                    const createResponse = await fetch('https://forms.googleapis.com/v1/forms', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.accessToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (!createResponse.ok) {
+                        throw new Error(`폼 생성 실패: ${createResponse.status}`);
+                    }
+
+                    const form = await createResponse.json();
+
+                    // Add questions
+                    const requests = questions.map((question, index) => ({
+                        createItem: {
+                            item: {
+                                title: question,
+                                questionItem: {
+                                    question: {
+                                        required: false,
+                                        textQuestion: {}
+                                    }
+                                }
+                            },
+                            location: {
+                                index: index
+                            }
+                        }
+                    }));
+
+                    const batchUpdateResponse = await fetch(`https://forms.googleapis.com/v1/forms/${form.formId}:batchUpdate`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.accessToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ requests })
+                    });
+
+                    if (!batchUpdateResponse.ok) {
+                        throw new Error(`질문 추가 실패: ${batchUpdateResponse.status}`);
+                    }
+
+                    this.showResult(form);
+
+                } catch (error) {
+                    console.error('Form creation error:', error);
+                    this.showStatus('폼 생성 중 오류가 발생했습니다: ' + error.message, 'error');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            showResult(form) {
+                const resultContent = document.getElementById('resultContent');
+                resultContent.innerHTML = `
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                        <h3 class="font-semibold text-green-800 mb-2">${form.info.title}</h3>
+                        <p class="text-green-700 text-sm mb-3">${form.info.description || '설명 없음'}</p>
+                        <div class="flex space-x-3">
+                            <a href="${form.responderUri}" target="_blank" 
+                               class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-external-link-alt mr-2"></i>폼 보기
+                            </a>
+                            <a href="${form.formUri}" target="_blank" 
+                               class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+                                <i class="fas fa-edit mr-2"></i>폼 편집
+                            </a>
+                            <button onclick="navigator.clipboard.writeText('${form.responderUri}')" 
+                                    class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
+                                <i class="fas fa-copy mr-2"></i>링크 복사
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <p><strong>폼 ID:</strong> ${form.formId}</p>
+                        <p><strong>응답자 링크:</strong> ${form.responderUri}</p>
+                        <p><strong>편집 링크:</strong> ${form.formUri}</p>
+                    </div>
+                `;
+
+                document.getElementById('result').classList.remove('hidden');
+                this.showStatus('구글 폼이 성공적으로 생성되었습니다!', 'success');
+            }
+
+            signOut() {
+                window.google.accounts.id.disableAutoSelect();
+                this.accessToken = null;
+                this.user = null;
+                
+                document.getElementById('userInfo').classList.add('hidden');
+                document.getElementById('formGenerator').classList.add('hidden');
+                document.getElementById('result').classList.add('hidden');
+                document.getElementById('loginSection').classList.remove('hidden');
+                
+                // Clear form
+                document.getElementById('formTitle').value = '';
+                document.getElementById('formDescription').value = '';
+                document.getElementById('questions').value = '';
+                
+                this.showStatus('로그아웃되었습니다.', 'info');
+            }
+
+            showLoading(show) {
+                document.getElementById('loading').classList.toggle('hidden', !show);
+            }
+
+            showStatus(message, type = 'info') {
+                const statusBar = document.getElementById('statusBar');
+                const statusText = document.getElementById('statusText');
+                
+                statusText.textContent = message;
+                statusBar.className = `mb-6 p-4 rounded-lg ${this.getStatusClass(type)}`;
+                statusBar.classList.remove('hidden');
+                
+                // Auto hide after 5 seconds for success/info messages
+                if (type === 'success' || type === 'info') {
+                    setTimeout(() => {
+                        statusBar.classList.add('hidden');
+                    }, 5000);
+                }
+            }
+
+            getStatusClass(type) {
+                const classes = {
+                    'info': 'bg-blue-50 border border-blue-200 text-blue-800',
+                    'success': 'bg-green-50 border border-green-200 text-green-800',
+                    'warning': 'bg-yellow-50 border border-yellow-200 text-yellow-800',
+                    'error': 'bg-red-50 border border-red-200 text-red-800'
+                };
+                return classes[type] || classes.info;
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new GoogleFormGenerator();
+        });
+    </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"rayId":"9607bd06fc7129d1","serverTiming":{"name":{"cfExtPri":true,"cfEdge":true,"cfOrigin":true,"cfL4":true,"cfSpeedBrain":true,"cfCacheStatus":true}},"version":"2025.7.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
+</body>
+</html>
+    <script id="html_badge_script1">
+        window.__genspark_remove_badge_link = "https://www.genspark.ai/api/html_badge/" +
+            "remove_badge?token=To%2FBnjzloZ3UfQdcSaYfDkewJJf3CCxGknPkiw%2BgopTtuRJu5bGDYig1Es3Ue54CLJeFH92qUpdHmmaqvqncSAQBK9b2xOwTLCxBIfKOX9q5vWVLSnYG46OJLDn3Rl7fgFJdOknvyl6olJEtpmzm1BuGHp06Igu5W3Oe293yJkwJKF1Mv7BZ86xCY0vyGuZtKZxI%2FYUh3aGmBA5wWpIYJL4PrSqYr6Nb4nnfo5gTKqJBDnApIKljGsz4ivzInvZyEpnS1Bg%2Fid18lsJ1S%2FnFICMkI6FUTHv9LuAPH5Mg3kwRxl930W8Rltl%2FhcJJiQ1tdXJzWk8bX95VLxvUIKngUrzI0oQY65Et49zTVhG6taonV%2B5dFkH51YZmDQ2WGnW39gOasvLYrlL5CQyiNhhyqxAoGSdyrOQjNVgIj0CNH6umwqN8kXgmDYradZlhWIw6HZ2NJPdwyK2oeaqTy%2FtYUOPo2BXdbhTI7hthxkg3tNnTjKXYkyfxX4Ky84R%2FXT0rMZUtF8SMjvpPahrTy4RKzzlGqRXfOhcxnue1Z1gLV9M%3D";
+        window.__genspark_locale = "ko-KR";
+        window.__genspark_token = "To/BnjzloZ3UfQdcSaYfDkewJJf3CCxGknPkiw+gopTtuRJu5bGDYig1Es3Ue54CLJeFH92qUpdHmmaqvqncSAQBK9b2xOwTLCxBIfKOX9q5vWVLSnYG46OJLDn3Rl7fgFJdOknvyl6olJEtpmzm1BuGHp06Igu5W3Oe293yJkwJKF1Mv7BZ86xCY0vyGuZtKZxI/YUh3aGmBA5wWpIYJL4PrSqYr6Nb4nnfo5gTKqJBDnApIKljGsz4ivzInvZyEpnS1Bg/id18lsJ1S/nFICMkI6FUTHv9LuAPH5Mg3kwRxl930W8Rltl/hcJJiQ1tdXJzWk8bX95VLxvUIKngUrzI0oQY65Et49zTVhG6taonV+5dFkH51YZmDQ2WGnW39gOasvLYrlL5CQyiNhhyqxAoGSdyrOQjNVgIj0CNH6umwqN8kXgmDYradZlhWIw6HZ2NJPdwyK2oeaqTy/tYUOPo2BXdbhTI7hthxkg3tNnTjKXYkyfxX4Ky84R/XT0rMZUtF8SMjvpPahrTy4RKzzlGqRXfOhcxnue1Z1gLV9M=";
+    </script>
+    
+    <script id="html_notice_dialog_script" src="https://www.genspark.ai/notice_dialog.js"></script>
+    
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>구글 폼 자동 생성기</title>
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://www.gstatic.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://apis.google.com https://accounts.google.com https://forms.googleapis.com https://www.googleapis.com; frame-src https://accounts.google.com https://docs.google.com; img-src 'self' data: https:;">
     
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
